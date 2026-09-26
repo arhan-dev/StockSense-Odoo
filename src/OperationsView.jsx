@@ -86,7 +86,7 @@ function ReceiptsTab() {
 
       {step === 2 && (
         <div>
-          <div style={{ backgroundColor: '#F9FAFB', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+          <div style={{ backgroundColor: 'rgba(255, 0, 200, 0.1)', border: '1px solid var(--primary)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
             <strong>Receipt: WH/IN/002</strong> | Vendor: Vendor A | Destination: Main Warehouse
           </div>
           
@@ -154,7 +154,7 @@ function DeliveryOrdersTab() {
             <td style={{ fontWeight: '500', color: 'var(--primary)' }}>SO-2026-992</td>
             <td>Client Corp</td>
             <td>10 Chairs [FUR-CH-01]</td>
-            <td><span style={{ backgroundColor: '#FEF3C7', color: '#92400E', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>To Pick</span></td>
+            <td><span style={{ backgroundColor: 'rgba(255, 230, 0, 0.2)', color: '#ffe600', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #ffe600' }}>To Pick</span></td>
             <td><button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}>Process</button></td>
           </tr>
         </tbody>
@@ -226,7 +226,7 @@ function StockAdjustmentsTab() {
         <div className="form-row">
           <div className="form-group">
             <label>Recorded Quantity</label>
-            <input type="text" className="form-control" value="1250 kg" disabled style={{ backgroundColor: '#F3F4F6' }} />
+            <input type="text" className="form-control" value="1250 kg" disabled style={{ backgroundColor: '#222222', opacity: 0.7 }} />
           </div>
           <div className="form-group">
             <label>Actual Physical Count</label>

@@ -1,17 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --primary: #4F46E5;
-  --primary-hover: #4338CA;
-  --secondary: #10B981;
-  --background: #F3F4F6;
-  --surface: #FFFFFF;
-  --text-main: #111827;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
-  --danger: #EF4444;
-  --warning: #F59E0B;
-  --info: #3B82F6;
+  --primary: #ff00c8;
+  --primary-hover: #d900ab;
+  --secondary: #00ffcc;
+  --background: #000000;
+  --surface: #111111;
+  --text-main: #ffffff;
+  --text-muted: #888888;
+  --border: #333333;
+  --danger: #ff3d00;
+  --warning: #ffe600;
+  --info: #00e5ff;
   --sidebar-width: 250px;
   --header-height: 64px;
 }
@@ -75,7 +75,7 @@ body {
 }
 
 .nav-item:hover, .nav-item.active {
-  background-color: #EEF2FF;
+  background-color: rgba(255, 0, 200, 0.1);
   color: var(--primary);
   border-right: 3px solid var(--primary);
 }
@@ -220,7 +220,7 @@ body {
   font-family: inherit;
   font-size: 0.875rem;
   color: var(--text-main);
-  background-color: #F9FAFB;
+  background-color: #222222;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -314,8 +314,8 @@ body {
   border: 1px solid var(--border);
 }
 .btn-secondary:hover {
-  background-color: #F9FAFB;
-  border-color: #D1D5DB;
+  background-color: #222222;
+  border-color: #444444;
 }
 
 .btn-success {
@@ -348,7 +348,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
-  background-color: #F9FAFB;
+  background-color: #1a1a1a;
   border-bottom: 1px solid var(--border);
 }
 
@@ -363,7 +363,7 @@ body {
   border-bottom: none;
 }
 .data-table tbody tr:hover {
-  background-color: #F9FAFB;
+  background-color: #1a1a1a;
 }
 
 /* Tabs */

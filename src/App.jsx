@@ -197,21 +197,21 @@ function DashboardView() {
               <td style={{ padding: '12px', fontWeight: '500', color: 'var(--primary)' }}>WH/IN/001</td>
               <td style={{ padding: '12px' }}>Receipt</td>
               <td style={{ padding: '12px' }}>Vendor X → Main Store</td>
-              <td style={{ padding: '12px' }}><span style={{ backgroundColor: '#D1FAE5', color: '#065F46', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Done</span></td>
+              <td style={{ padding: '12px' }}><span style={{ backgroundColor: 'rgba(0, 255, 204, 0.2)', color: '#00ffcc', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #00ffcc' }}>Done</span></td>
               <td style={{ padding: '12px' }}>Today, 09:41 AM</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border)' }}>
               <td style={{ padding: '12px', fontWeight: '500', color: 'var(--primary)' }}>WH/OUT/045</td>
               <td style={{ padding: '12px' }}>Delivery</td>
               <td style={{ padding: '12px' }}>Main Store → Customer Y</td>
-              <td style={{ padding: '12px' }}><span style={{ backgroundColor: '#FEF3C7', color: '#92400E', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Ready</span></td>
+              <td style={{ padding: '12px' }}><span style={{ backgroundColor: 'rgba(255, 230, 0, 0.2)', color: '#ffe600', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #ffe600' }}>Ready</span></td>
               <td style={{ padding: '12px' }}>Today, 08:30 AM</td>
             </tr>
             <tr>
               <td style={{ padding: '12px', fontWeight: '500', color: 'var(--primary)' }}>WH/INT/012</td>
               <td style={{ padding: '12px' }}>Internal</td>
               <td style={{ padding: '12px' }}>Main Store → Production Rack</td>
-              <td style={{ padding: '12px' }}><span style={{ backgroundColor: '#D1FAE5', color: '#065F46', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Done</span></td>
+              <td style={{ padding: '12px' }}><span style={{ backgroundColor: 'rgba(0, 255, 204, 0.2)', color: '#00ffcc', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #00ffcc' }}>Done</span></td>
               <td style={{ padding: '12px' }}>Yesterday, 04:15 PM</td>
             </tr>
           </tbody>

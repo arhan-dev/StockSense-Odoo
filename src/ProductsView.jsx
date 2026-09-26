@@ -104,7 +104,7 @@ export default function ProductsView() {
               <tr key={product.id}>
                 <td style={{ fontWeight: '500', color: 'var(--primary)' }}>{product.sku}</td>
                 <td>{product.name}</td>
-                <td><span style={{ backgroundColor: '#F3F4F6', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>{product.category}</span></td>
+                <td><span style={{ backgroundColor: '#222222', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #444' }}>{product.category}</span></td>
                 <td>{product.stock} {product.uom}</td>
                 <td>{product.location}</td>
                 <td>
