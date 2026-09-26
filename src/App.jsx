@@ -10,6 +10,8 @@ import {
   LogOut,
   Shield,
   FileText,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react'
 
 import ProductsView from './ProductsView'
@@ -27,6 +29,13 @@ import {
   unsubscribeFromAuth,
 } from './lib/auth'
 
+import {
+  getDashboardSummary,
+  getRecentStockMoves,
+  listLowStockProducts,
+  listOutOfStockProducts,
+} from './lib/inventory'
+
 function App() {
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -42,7 +51,10 @@ function App() {
           setSession(currentSession)
         }
       } catch (error) {
-        console.error('Unable to load Supabase session:', error)
+        console.error(
+          'Unable to load Supabase session:',
+          error
+        )
 
         if (mounted) {
           setSession(null)
@@ -87,8 +99,11 @@ function App() {
 }
 
 function AuthenticatedApp({ session }) {
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [isCommandOpen, setIsCommandOpen] = useState(false)
+  const [activeTab, setActiveTab] =
+    useState('dashboard')
+
+  const [isCommandOpen, setIsCommandOpen] =
+    useState(false)
 
   const user = session?.user
 
@@ -117,7 +132,12 @@ function AuthenticatedApp({ session }) {
 
       <aside className="sidebar">
         <div className="sidebar-header">
-          <Package style={{ marginRight: '10px' }} />
+          <Package
+            style={{
+              marginRight: '10px',
+            }}
+          />
+
           StockSense
         </div>
 
@@ -128,7 +148,9 @@ function AuthenticatedApp({ session }) {
                 ? 'active'
                 : ''
             }`}
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() =>
+              setActiveTab('dashboard')
+            }
           >
             <LayoutDashboard />
             Dashboard
@@ -140,7 +162,9 @@ function AuthenticatedApp({ session }) {
                 ? 'active'
                 : ''
             }`}
-            onClick={() => setActiveTab('products')}
+            onClick={() =>
+              setActiveTab('products')
+            }
           >
             <Package />
             Products
@@ -152,7 +176,9 @@ function AuthenticatedApp({ session }) {
                 ? 'active'
                 : ''
             }`}
-            onClick={() => setActiveTab('operations')}
+            onClick={() =>
+              setActiveTab('operations')
+            }
           >
             <Truck />
             Operations
@@ -164,7 +190,9 @@ function AuthenticatedApp({ session }) {
                 ? 'active'
                 : ''
             }`}
-            onClick={() => setActiveTab('privacy')}
+            onClick={() =>
+              setActiveTab('privacy')
+            }
           >
             <Shield />
             Privacy Policy
@@ -176,7 +204,9 @@ function AuthenticatedApp({ session }) {
                 ? 'active'
                 : ''
             }`}
-            onClick={() => setActiveTab('terms')}
+            onClick={() =>
+              setActiveTab('terms')
+            }
           >
             <FileText />
             Terms
@@ -188,7 +218,9 @@ function AuthenticatedApp({ session }) {
                 ? 'active'
                 : ''
             }`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() =>
+              setActiveTab('settings')
+            }
           >
             <Settings />
             Settings
@@ -205,7 +237,9 @@ function AuthenticatedApp({ session }) {
         >
           <div
             className="nav-item"
-            onClick={() => setActiveTab('settings')}
+            onClick={() =>
+              setActiveTab('settings')
+            }
           >
             <User />
             My Profile
@@ -372,104 +406,242 @@ function AuthenticatedApp({ session }) {
 }
 
 function DashboardView() {
+  const [summary, setSummary] =
+    useState(null)
+
+  const [recentMoves, setRecentMoves] =
+    useState([])
+
+  const [lowStockProducts, setLowStockProducts] =
+    useState([])
+
+  const [outOfStockProducts, setOutOfStockProducts] =
+    useState([])
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [error, setError] =
+    useState('')
+
+  async function loadDashboard() {
+    setLoading(true)
+    setError('')
+
+    try {
+      const [
+        summaryData,
+        recentMoveData,
+        lowStockData,
+        outOfStockData,
+      ] = await Promise.all([
+        getDashboardSummary(),
+        getRecentStockMoves(10),
+        listLowStockProducts(),
+        listOutOfStockProducts(),
+      ])
+
+      setSummary(summaryData)
+      setRecentMoves(
+        recentMoveData ?? []
+      )
+      setLowStockProducts(
+        lowStockData ?? []
+      )
+      setOutOfStockProducts(
+        outOfStockData ?? []
+      )
+    } catch (err) {
+      console.error(
+        'Unable to load dashboard:',
+        err
+      )
+
+      setError(
+        err?.message ||
+          'Unable to load dashboard data.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard()
+  }, [])
+
+  const totalProducts =
+    summary?.totalProducts ?? 0
+
+  const lowStock =
+    summary?.lowStockItems ?? 0
+
+  const outOfStock =
+    summary?.outOfStockItems ?? 0
+
+  const pendingReceipts =
+    summary?.pendingReceipts ?? 0
+
+  const pendingDeliveries =
+    summary?.pendingDeliveries ?? 0
+
+  const pendingTransfers =
+    summary?.pendingTransfers ?? 0
+
   return (
     <>
-      <div className="kpi-grid">
-        <div className="kpi-card info">
-          <div className="kpi-title">
-            Total Products in Stock
-          </div>
-
-          <div className="kpi-value">
-            12,450
-          </div>
-
-          <div
+      <div
+        style={{
+          display: 'flex',
+          justifyContent:
+            'space-between',
+          alignItems: 'center',
+          marginBottom: '1.5rem',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div>
+          <h2
             style={{
-              marginTop: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              paddingTop: '8px',
+              margin: 0,
+              fontSize: '1.25rem',
+              fontWeight: '600',
+              color:
+                'var(--text-main)',
             }}
           >
-            Live inventory data will appear here
-          </div>
-        </div>
+            Inventory Dashboard
+          </h2>
 
-        <div className="kpi-card danger">
-          <div className="kpi-title">
-            Low / Out of Stock
-          </div>
-
-          <div className="kpi-value">
-            18
-          </div>
-
-          <div
+          <p
             style={{
-              marginTop: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              paddingTop: '8px',
+              margin:
+                '0.35rem 0 0',
+              color:
+                'var(--text-muted)',
+              fontSize: '0.8rem',
             }}
           >
-            Inventory alerts
-          </div>
+            Live inventory overview from
+            Supabase.
+          </p>
         </div>
 
-        <div className="kpi-card success">
-          <div className="kpi-title">
-            Pending Receipts
-          </div>
-
-          <div className="kpi-value">
-            5
-          </div>
-
-          <div
+        <button
+          className="btn-secondary"
+          type="button"
+          onClick={loadDashboard}
+          disabled={loading}
+        >
+          <RefreshCw
+            size={15}
             style={{
-              marginTop: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              paddingTop: '8px',
+              marginRight: '6px',
             }}
-          >
-            Incoming operations
-          </div>
+          />
+
+          {loading
+            ? 'Refreshing...'
+            : 'Refresh'}
+        </button>
+      </div>
+
+      {error && (
+        <div
+          style={{
+            marginBottom: '1.5rem',
+            padding: '0.85rem 1rem',
+            border:
+              '1px solid rgba(239, 68, 68, 0.35)',
+            backgroundColor:
+              'rgba(239, 68, 68, 0.08)',
+            color: '#fca5a5',
+            fontSize: '0.875rem',
+          }}
+        >
+          {error}
         </div>
+      )}
 
-        <div className="kpi-card warning">
-          <div className="kpi-title">
-            Pending Deliveries
-          </div>
+      <div
+        className="kpi-grid"
+        style={{
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(170px, 1fr))',
+        }}
+      >
+        <KpiCard
+          title="Total Products"
+          value={
+            loading
+              ? '—'
+              : formatNumber(totalProducts)
+          }
+          type="info"
+          footer="Product records"
+        />
 
-          <div className="kpi-value">
-            24
-          </div>
+        <KpiCard
+          title="Low Stock Items"
+          value={
+            loading
+              ? '—'
+              : formatNumber(lowStock)
+          }
+          type="warning"
+          footer="Below reorder threshold"
+        />
 
-          <div
-            style={{
-              marginTop: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              paddingTop: '8px',
-            }}
-          >
-            Outgoing operations
-          </div>
-        </div>
+        <KpiCard
+          title="Out of Stock"
+          value={
+            loading
+              ? '—'
+              : formatNumber(outOfStock)
+          }
+          type="danger"
+          footer="Zero available stock"
+        />
+
+        <KpiCard
+          title="Pending Receipts"
+          value={
+            loading
+              ? '—'
+              : formatNumber(
+                  pendingReceipts
+                )
+          }
+          type="success"
+          footer="Incoming operations"
+        />
+
+        <KpiCard
+          title="Pending Deliveries"
+          value={
+            loading
+              ? '—'
+              : formatNumber(
+                  pendingDeliveries
+                )
+          }
+          type="warning"
+          footer="Outgoing operations"
+        />
+
+        <KpiCard
+          title="Internal Transfers"
+          value={
+            loading
+              ? '—'
+              : formatNumber(
+                  pendingTransfers
+                )
+          }
+          type="info"
+          footer="Pending stock moves"
+        />
       </div>
 
       <div className="filters-section">
@@ -487,15 +659,19 @@ function DashboardView() {
               <option value="">
                 All Types
               </option>
+
               <option value="receipt">
                 Receipts
               </option>
+
               <option value="delivery">
                 Delivery
               </option>
+
               <option value="internal">
                 Internal
               </option>
+
               <option value="adjustment">
                 Adjustments
               </option>
@@ -503,24 +679,31 @@ function DashboardView() {
           </div>
 
           <div className="filter-group">
-            <label>Status</label>
+            <label>
+              Status
+            </label>
 
             <select>
               <option value="">
                 All Statuses
               </option>
+
               <option value="draft">
                 Draft
               </option>
+
               <option value="waiting">
                 Waiting
               </option>
+
               <option value="ready">
                 Ready
               </option>
+
               <option value="done">
                 Done
               </option>
+
               <option value="cancelled">
                 Cancelled
               </option>
@@ -557,7 +740,7 @@ function DashboardView() {
         style={{
           display: 'grid',
           gridTemplateColumns:
-            '1fr 300px',
+            'minmax(0, 1fr) 300px',
           gap: '1.5rem',
           marginBottom: '1.5rem',
         }}
@@ -572,113 +755,234 @@ function DashboardView() {
             flexDirection:
               'column',
             flex: 1,
+            overflow: 'hidden',
           }}
         >
-          <h3
+          <div
             style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent:
+                'space-between',
+              alignItems: 'center',
               marginBottom: '1rem',
-              color:
-                'var(--text-main)',
-              fontSize: '1rem',
-              fontWeight: '600',
+              gap: '1rem',
             }}
           >
-            Recent Operations Ledger
-          </h3>
+            <h3
+              style={{
+                margin: 0,
+                color:
+                  'var(--text-main)',
+                fontSize: '1rem',
+                fontWeight: '600',
+              }}
+            >
+              Recent Stock Activity
+            </h3>
 
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Document ID</th>
-                <th>Type</th>
-                <th>
-                  Source / Destination
-                </th>
-                <th>Status</th>
-              </tr>
-            </thead>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                color:
+                  'var(--text-muted)',
+              }}
+            >
+              Latest 10 movements
+            </span>
+          </div>
 
-            <tbody>
-              <tr>
-                <td
-                  style={{
-                    fontWeight: '500',
-                    color:
-                      'var(--text-main)',
-                  }}
-                >
-                  WH/IN/001
-                </td>
+          {loading ? (
+            <div
+              style={{
+                width: '100%',
+                padding: '2rem',
+                textAlign: 'center',
+                color:
+                  'var(--text-muted)',
+              }}
+            >
+              Loading recent activity...
+            </div>
+          ) : recentMoves.length ===
+            0 ? (
+            <div
+              style={{
+                width: '100%',
+                padding: '2rem',
+                textAlign: 'center',
+                color:
+                  'var(--text-muted)',
+              }}
+            >
+              No stock movements recorded
+              yet.
+            </div>
+          ) : (
+            <div
+              style={{
+                width: '100%',
+                overflowX: 'auto',
+              }}
+            >
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>
+                      Reference
+                    </th>
 
-                <td>Receipt</td>
+                    <th>
+                      Product
+                    </th>
 
-                <td>
-                  Vendor / Main Store
-                </td>
+                    <th>
+                      Type
+                    </th>
 
-                <td>
-                  <span className="badge badge-success">
-                    Done
-                  </span>
-                </td>
-              </tr>
+                    <th>
+                      Location
+                    </th>
 
-              <tr>
-                <td
-                  style={{
-                    fontWeight: '500',
-                    color:
-                      'var(--text-main)',
-                  }}
-                >
-                  WH/OUT/045
-                </td>
+                    <th>
+                      Quantity
+                    </th>
 
-                <td>Delivery</td>
+                    <th>
+                      Time
+                    </th>
+                  </tr>
+                </thead>
 
-                <td>
-                  Main Store / Customer
-                </td>
+                <tbody>
+                  {recentMoves.map(
+                    (move) => (
+                      <tr
+                        key={move.id}
+                      >
+                        <td
+                          style={{
+                            fontWeight:
+                              '500',
+                            color:
+                              'var(--text-main)',
+                          }}
+                        >
+                          {move.source_document_ref ||
+                            '—'}
+                        </td>
 
-                <td>
-                  <span className="badge badge-warning">
-                    Ready
-                  </span>
-                </td>
-              </tr>
+                        <td>
+                          <div
+                            style={{
+                              fontWeight:
+                                '500',
+                            }}
+                          >
+                            {move.products
+                              ?.name ||
+                              'Unknown product'}
+                          </div>
 
-              <tr>
-                <td
-                  style={{
-                    fontWeight: '500',
-                    color:
-                      'var(--text-main)',
-                  }}
-                >
-                  WH/INT/012
-                </td>
+                          <div
+                            style={{
+                              fontSize:
+                                '0.7rem',
+                              color:
+                                'var(--text-muted)',
+                              marginTop:
+                                '2px',
+                            }}
+                          >
+                            {move.products
+                              ?.sku ||
+                              ''}
+                          </div>
+                        </td>
 
-                <td>Internal</td>
+                        <td>
+                          <span className="badge badge-gray">
+                            {formatMoveType(
+                              move.move_type
+                            )}
+                          </span>
+                        </td>
 
-                <td>
-                  Main Store / Production
-                </td>
+                        <td>
+                          {move.locations
+                            ?.name ||
+                            'Unknown location'}
+                        </td>
 
-                <td>
-                  <span className="badge badge-success">
-                    Done
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                        <td>
+                          <span
+                            style={{
+                              color:
+                                Number(
+                                  move.quantity_delta
+                                ) >= 0
+                                  ? 'var(--success)'
+                                  : 'var(--danger)',
+                              fontWeight:
+                                '600',
+                            }}
+                          >
+                            {Number(
+                              move.quantity_delta
+                            ) >= 0
+                              ? '+'
+                              : ''}
+                            {formatNumber(
+                              move.quantity_delta
+                            )}
+                          </span>
+
+                          <span
+                            style={{
+                              marginLeft:
+                                '4px',
+                              color:
+                                'var(--text-muted)',
+                              fontSize:
+                                '0.7rem',
+                            }}
+                          >
+                            {move.products
+                              ?.unit_of_measure ||
+                              ''}
+                          </span>
+                        </td>
+
+                        <td
+                          style={{
+                            whiteSpace:
+                              'nowrap',
+                            color:
+                              'var(--text-muted)',
+                            fontSize:
+                              '0.75rem',
+                          }}
+                        >
+                          {formatDateTime(
+                            move.created_at
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div
           className="card"
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection:
+              'column',
+            minWidth: 0,
           }}
         >
           <h3
@@ -693,91 +997,259 @@ function DashboardView() {
               gap: '0.5rem',
             }}
           >
-            <span
+            <AlertTriangle
+              size={16}
               style={{
-                display: 'inline-block',
-                width: '8px',
-                height: '8px',
-                backgroundColor:
+                color:
                   'var(--danger)',
-                borderRadius: '50%',
               }}
             />
 
             Inventory Alerts
           </h3>
 
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem',
-            }}
-          >
+          {loading ? (
             <div
               style={{
-                borderLeft:
-                  '2px solid var(--danger)',
-                paddingLeft: '1rem',
+                color:
+                  'var(--text-muted)',
+                fontSize:
+                  '0.8rem',
               }}
             >
-              <div
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  color:
-                    'var(--text-main)',
-                }}
-              >
-                Low stock items
-              </div>
-
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  color:
-                    'var(--text-muted)',
-                }}
-              >
-                Items below their configured
-                reorder threshold.
-              </div>
+              Loading alerts...
             </div>
-
+          ) : (
             <div
               style={{
-                borderLeft:
-                  '2px solid var(--warning)',
-                paddingLeft: '1rem',
+                display: 'flex',
+                flexDirection:
+                  'column',
+                gap: '1rem',
               }}
             >
-              <div
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  color:
-                    'var(--text-main)',
-                }}
-              >
-                Pending operations
-              </div>
+              <AlertSection
+                title="Out of stock"
+                count={
+                  outOfStockProducts.length
+                }
+                description="Products with zero available stock."
+                type="danger"
+              />
 
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  color:
-                    'var(--text-muted)',
-                }}
-              >
-                Receipts and deliveries waiting
-                for processing.
-              </div>
+              <AlertSection
+                title="Low stock"
+                count={
+                  lowStockProducts.length
+                }
+                description="Products at or below their reorder threshold."
+                type="warning"
+              />
+
+              {pendingReceipts +
+                pendingDeliveries +
+                pendingTransfers >
+                0 && (
+                <AlertSection
+                  title="Pending operations"
+                  count={
+                    pendingReceipts +
+                    pendingDeliveries +
+                    pendingTransfers
+                  }
+                  description="Receipts, deliveries, or transfers awaiting completion."
+                  type="info"
+                />
+              )}
+
+              {outOfStockProducts.length ===
+                0 &&
+                lowStockProducts.length ===
+                  0 &&
+                pendingReceipts +
+                  pendingDeliveries +
+                  pendingTransfers ===
+                  0 && (
+                  <div
+                    style={{
+                      padding:
+                        '0.85rem',
+                      border:
+                        '1px solid var(--border)',
+                      color:
+                        'var(--text-muted)',
+                      fontSize:
+                        '0.8rem',
+                    }}
+                  >
+                    No active inventory
+                    alerts.
+                  </div>
+                )}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>
+  )
+}
+
+function KpiCard({
+  title,
+  value,
+  type,
+  footer,
+}) {
+  return (
+    <div
+      className={`kpi-card ${type}`}
+    >
+      <div className="kpi-title">
+        {title}
+      </div>
+
+      <div className="kpi-value">
+        {value}
+      </div>
+
+      <div
+        style={{
+          marginTop: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          fontSize: '0.75rem',
+          color:
+            'var(--text-muted)',
+          paddingTop: '8px',
+        }}
+      >
+        {footer}
+      </div>
+    </div>
+  )
+}
+
+function AlertSection({
+  title,
+  count,
+  description,
+  type,
+}) {
+  const borderColor =
+    type === 'danger'
+      ? 'var(--danger)'
+      : type === 'warning'
+        ? 'var(--warning)'
+        : 'var(--primary)'
+
+  return (
+    <div
+      style={{
+        borderLeft:
+          `2px solid ${borderColor}`,
+        paddingLeft: '1rem',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent:
+            'space-between',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}
+      >
+        <div
+          style={{
+            fontSize:
+              '0.875rem',
+            fontWeight: '500',
+            color:
+              'var(--text-main)',
+          }}
+        >
+          {title}
+        </div>
+
+        <span
+          className={`badge ${
+            type === 'danger'
+              ? 'badge-danger'
+              : type === 'warning'
+                ? 'badge-warning'
+                : 'badge-gray'
+          }`}
+        >
+          {count}
+        </span>
+      </div>
+
+      <div
+        style={{
+          marginTop: '0.25rem',
+          fontSize:
+            '0.75rem',
+          color:
+            'var(--text-muted)',
+          lineHeight: 1.45,
+        }}
+      >
+        {description}
+      </div>
+    </div>
+  )
+}
+
+function formatNumber(value) {
+  const number = Number(
+    value ?? 0
+  )
+
+  if (!Number.isFinite(number)) {
+    return '0'
+  }
+
+  return number.toLocaleString(
+    undefined,
+    {
+      maximumFractionDigits: 2,
+    }
+  )
+}
+
+function formatMoveType(type) {
+  if (!type) {
+    return 'Unknown'
+  }
+
+  return (
+    type.charAt(0).toUpperCase() +
+    type.slice(1)
+  )
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return '—'
+  }
+
+  const date = new Date(value)
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return '—'
+  }
+
+  return date.toLocaleString(
+    undefined,
+    {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }
   )
 }
 
@@ -791,7 +1263,8 @@ function LoadingScreen() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: 'Inter, sans-serif',
+        fontFamily:
+          'Inter, sans-serif',
       }}
     >
       <div
@@ -808,8 +1281,10 @@ function LoadingScreen() {
 
         <div
           style={{
-            fontSize: '0.9rem',
-            color: '#a3a3a3',
+            fontSize:
+              '0.9rem',
+            color:
+              '#a3a3a3',
           }}
         >
           Loading StockSense...
