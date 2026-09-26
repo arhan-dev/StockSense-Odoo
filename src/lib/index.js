@@ -30,6 +30,7 @@ export {
   updateWarehouse,
   deleteWarehouse,
   listLocations,
+  listLocationsByWarehouse,
   getLocation,
   createLocation,
   updateLocation,
