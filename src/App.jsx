@@ -5,12 +5,15 @@ import OperationsView from './OperationsView';
 import PrivacyView from './PrivacyView';
 import TermsView from './TermsView';
 import SettingsView from './SettingsView';
+import CommandPalette from './CommandPalette';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
 
   return (
     <div className="app-container">
+      <CommandPalette isOpen={isCommandOpen} setIsOpen={setIsCommandOpen} setActiveTab={setActiveTab} />
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -72,19 +75,20 @@ function App() {
             {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
           </div>
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }} onClick={() => setIsCommandOpen(true)}>
               <Search style={{ position: 'absolute', left: '10px', top: '8px', width: '18px', height: '18px', color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                placeholder="Search SKU..." 
+              <div 
                 style={{ 
                   padding: '8px 16px 8px 36px', 
-                  borderRadius: '4px', 
                   border: '1px solid var(--border)',
-                  outline: 'none',
-                  fontSize: '0.875rem'
+                  backgroundColor: 'var(--surface)',
+                  fontSize: '0.875rem', color: 'var(--text-muted)',
+                  cursor: 'text', display: 'flex', alignItems: 'center', gap: '2rem'
                 }} 
-              />
+              >
+                Search or jump to...
+                <span style={{ fontSize: '0.7rem', border: '1px solid var(--border)', padding: '2px 4px', color: 'var(--text-muted)' }}>⌘K</span>
+              </div>
             </div>
             <Bell style={{ color: 'var(--text-muted)', cursor: 'pointer' }} />
             <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -186,42 +190,58 @@ function DashboardView() {
         </div>
       </div>
       
-      <div className="content-area" style={{ justifyContent: 'flex-start', alignItems: 'flex-start', flexDirection: 'column' }}>
-        <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: '1.125rem' }}>Recent Operations Ledger</h3>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Document ID</th>
-              <th>Type</th>
-              <th>Source / Destination</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/IN/001</td>
-              <td>Receipt</td>
-              <td>Vendor X / Main Store</td>
-              <td><span className="badge badge-success">Done</span></td>
-              <td>Today, 09:41 AM</td>
-            </tr>
-            <tr>
-              <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/OUT/045</td>
-              <td>Delivery</td>
-              <td>Main Store / Customer Y</td>
-              <td><span className="badge badge-warning">Ready</span></td>
-              <td>Today, 08:30 AM</td>
-            </tr>
-            <tr>
-              <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/INT/012</td>
-              <td>Internal</td>
-              <td>Main Store / Production Rack</td>
-              <td><span className="badge badge-success">Done</span></td>
-              <td>Yesterday, 04:15 PM</td>
-            </tr>
-          </tbody>
-        </table>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div className="content-area" style={{ justifyContent: 'flex-start', alignItems: 'flex-start', flexDirection: 'column', flex: 1 }}>
+          <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: '1rem', fontWeight: '600' }}>Recent Operations Ledger</h3>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Document ID</th>
+                <th>Type</th>
+                <th>Source / Destination</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/IN/001</td>
+                <td>Receipt</td>
+                <td>Vendor X / Main Store</td>
+                <td><span className="badge badge-success">Done</span></td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/OUT/045</td>
+                <td>Delivery</td>
+                <td>Main Store / Customer Y</td>
+                <td><span className="badge badge-warning">Ready</span></td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/INT/012</td>
+                <td>Internal</td>
+                <td>Main Store / Prod Rack</td>
+                <td><span className="badge badge-success">Done</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: '1rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--danger)', borderRadius: '50%' }}></span>
+            Predictive Alerts
+          </h3>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ borderLeft: '2px solid var(--danger)', paddingLeft: '1rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-main)' }}>Copper Wire [C-WIRE-01]</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Stockout predicted in 3 days based on current outflow velocity.</div>
+            </div>
+            <div style={{ borderLeft: '2px solid var(--warning)', paddingLeft: '1rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-main)' }}>Office Chair [FUR-CH-01]</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Delivery bottleneck detected at Warehouse 1. Re-route recommended.</div>
+            </div>
+          </div>
+          <button className="btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>Run Full Analysis</button>
+        </div>
       </div>
     </>
   );
