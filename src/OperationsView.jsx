@@ -80,13 +80,13 @@ function ReceiptsTab() {
               <option>Warehouse 1</option>
             </select>
           </div>
-          <button type="submit" className="btn btn-primary">Start Receipt</button>
+          <button type="submit" className="btn-primary">Start Receipt</button>
         </form>
       )}
 
       {step === 2 && (
         <div>
-          <div style={{ backgroundColor: 'rgba(255, 0, 200, 0.1)', border: '1px solid var(--primary)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+          <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)', border: '1px solid var(--border)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
             <strong>Receipt: WH/IN/002</strong> | Vendor: Vendor A | Destination: Main Warehouse
           </div>
           
@@ -113,10 +113,10 @@ function ReceiptsTab() {
           </table>
 
           <div style={{ display: 'flex', gap: '1rem' }}>
-            <button className="btn btn-success" onClick={() => setStep(3)}>
+            <button className="btn-primary" onClick={() => setStep(3)}>
               <CheckCircle size={18} /> Validate Receipt
             </button>
-            <button className="btn btn-secondary" onClick={() => setStep(1)}>Cancel</button>
+            <button className="btn-secondary" onClick={() => setStep(1)}>Cancel</button>
           </div>
         </div>
       )}
@@ -126,7 +126,7 @@ function ReceiptsTab() {
           <CheckCircle size={48} style={{ color: 'var(--secondary)', marginBottom: '1rem' }} />
           <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Receipt Validated!</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Stock has automatically increased for the received items.</p>
-          <button className="btn btn-primary" onClick={() => setStep(1)}>Create New Receipt</button>
+          <button className="btn-primary" onClick={() => setStep(1)}>Create New Receipt</button>
         </div>
       )}
     </div>
@@ -154,8 +154,8 @@ function DeliveryOrdersTab() {
             <td style={{ fontWeight: '500', color: 'var(--primary)' }}>SO-2026-992</td>
             <td>Client Corp</td>
             <td>10 Chairs [FUR-CH-01]</td>
-            <td><span style={{ backgroundColor: 'rgba(255, 230, 0, 0.2)', color: '#ffe600', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #ffe600' }}>To Pick</span></td>
-            <td><button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }}>Process</button></td>
+            <td><span className="badge badge-warning">To Pick</span></td>
+            <td><button className="btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem' }}>Process</button></td>
           </tr>
         </tbody>
       </table>
@@ -195,7 +195,7 @@ function InternalTransfersTab() {
           <label>Quantity</label>
           <input type="number" className="form-control" placeholder="0" style={{ maxWidth: '200px' }} />
         </div>
-        <button className="btn btn-primary">Confirm Transfer</button>
+        <button className="btn-primary">Confirm Transfer</button>
       </form>
     </div>
   );
@@ -226,7 +226,7 @@ function StockAdjustmentsTab() {
         <div className="form-row">
           <div className="form-group">
             <label>Recorded Quantity</label>
-            <input type="text" className="form-control" value="1250 kg" disabled style={{ backgroundColor: '#222222', opacity: 0.7 }} />
+            <input type="text" className="form-control" value="1250 kg" disabled style={{ backgroundColor: 'rgba(0,0,0,0.05)', opacity: 0.7 }} />
           </div>
           <div className="form-group">
             <label>Actual Physical Count</label>
@@ -237,7 +237,7 @@ function StockAdjustmentsTab() {
           <label>Reason for Adjustment</label>
           <input type="text" className="form-control" placeholder="e.g., 3 kg steel damaged" />
         </div>
-        <button className="btn btn-warning" style={{ backgroundColor: 'var(--warning)', color: 'white' }}>Apply Adjustment</button>
+        <button className="btn-shiny" style={{ backgroundColor: 'var(--warning)', color: 'white', border: 'none' }}>Apply Adjustment</button>
       </form>
     </div>
   );

@@ -1,18 +1,10 @@
-import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Package, 
-  ArrowRightLeft, 
-  Settings, 
-  User,
-  LogOut,
-  Search,
-  Bell,
-  Box
-} from 'lucide-react';
-import './index.css';
+import { useState } from 'react';
+import { LayoutDashboard, Package, Truck, Settings, Search, Bell, User, LogOut, Shield, FileText } from 'lucide-react';
 import ProductsView from './ProductsView';
 import OperationsView from './OperationsView';
+import PrivacyView from './PrivacyView';
+import TermsView from './TermsView';
+import SettingsView from './SettingsView';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -22,7 +14,7 @@ function App() {
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <Box style={{ marginRight: '8px', color: 'var(--primary)' }} />
+          <Package style={{ marginRight: '10px' }} />
           StockSense
         </div>
         <nav className="sidebar-nav">
@@ -42,7 +34,19 @@ function App() {
             className={`nav-item ${activeTab === 'operations' ? 'active' : ''}`}
             onClick={() => setActiveTab('operations')}
           >
-            <ArrowRightLeft /> Operations
+            <Truck /> Operations
+          </div>
+          <div 
+            className={`nav-item ${activeTab === 'privacy' ? 'active' : ''}`}
+            onClick={() => setActiveTab('privacy')}
+          >
+            <Shield /> Privacy Policy
+          </div>
+          <div 
+            className={`nav-item ${activeTab === 'terms' ? 'active' : ''}`}
+            onClick={() => setActiveTab('terms')}
+          >
+            <FileText /> Terms
           </div>
           <div 
             className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
@@ -75,7 +79,7 @@ function App() {
                 placeholder="Search SKU..." 
                 style={{ 
                   padding: '8px 16px 8px 36px', 
-                  borderRadius: '20px', 
+                  borderRadius: '4px', 
                   border: '1px solid var(--border)',
                   outline: 'none',
                   fontSize: '0.875rem'
@@ -83,9 +87,9 @@ function App() {
               />
             </div>
             <Bell style={{ color: 'var(--text-muted)', cursor: 'pointer' }} />
-            <div className="user-profile">
-              <div className="avatar">IM</div>
-              <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>Inventory Manager</span>
+            <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="avatar">AD</div>
+              <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>Admin</span>
             </div>
           </div>
         </header>
@@ -94,7 +98,9 @@ function App() {
           {activeTab === 'dashboard' && <DashboardView />}
           {activeTab === 'products' && <ProductsView />}
           {activeTab === 'operations' && <OperationsView />}
-          {activeTab === 'settings' && <div className="content-area">Settings: Warehouse configuration...</div>}
+          {activeTab === 'privacy' && <PrivacyView />}
+          {activeTab === 'terms' && <TermsView />}
+          {activeTab === 'settings' && <SettingsView />}
         </div>
       </main>
     </div>
@@ -108,8 +114,8 @@ function DashboardView() {
         <div className="kpi-card info">
           <div className="kpi-title">Total Products in Stock</div>
           <div className="kpi-value">12,450</div>
-          <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--secondary)', paddingTop: '8px' }}>
-            ↑ 4.2% from last week
+          <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '8px' }}>
+            Volume: 4.2% YoY
           </div>
         </div>
         <div className="kpi-card danger">
@@ -182,37 +188,37 @@ function DashboardView() {
       
       <div className="content-area" style={{ justifyContent: 'flex-start', alignItems: 'flex-start', flexDirection: 'column' }}>
         <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: '1.125rem' }}>Recent Operations Ledger</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="data-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-              <th style={{ padding: '12px' }}>Document ID</th>
-              <th style={{ padding: '12px' }}>Type</th>
-              <th style={{ padding: '12px' }}>Source → Destination</th>
-              <th style={{ padding: '12px' }}>Status</th>
-              <th style={{ padding: '12px' }}>Date</th>
+            <tr>
+              <th>Document ID</th>
+              <th>Type</th>
+              <th>Source / Destination</th>
+              <th>Status</th>
+              <th>Date</th>
             </tr>
           </thead>
-          <tbody style={{ fontSize: '0.875rem' }}>
-            <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '12px', fontWeight: '500', color: 'var(--primary)' }}>WH/IN/001</td>
-              <td style={{ padding: '12px' }}>Receipt</td>
-              <td style={{ padding: '12px' }}>Vendor X → Main Store</td>
-              <td style={{ padding: '12px' }}><span style={{ backgroundColor: 'rgba(0, 255, 204, 0.2)', color: '#00ffcc', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #00ffcc' }}>Done</span></td>
-              <td style={{ padding: '12px' }}>Today, 09:41 AM</td>
-            </tr>
-            <tr style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '12px', fontWeight: '500', color: 'var(--primary)' }}>WH/OUT/045</td>
-              <td style={{ padding: '12px' }}>Delivery</td>
-              <td style={{ padding: '12px' }}>Main Store → Customer Y</td>
-              <td style={{ padding: '12px' }}><span style={{ backgroundColor: 'rgba(255, 230, 0, 0.2)', color: '#ffe600', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #ffe600' }}>Ready</span></td>
-              <td style={{ padding: '12px' }}>Today, 08:30 AM</td>
+          <tbody>
+            <tr>
+              <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/IN/001</td>
+              <td>Receipt</td>
+              <td>Vendor X / Main Store</td>
+              <td><span className="badge badge-success">Done</span></td>
+              <td>Today, 09:41 AM</td>
             </tr>
             <tr>
-              <td style={{ padding: '12px', fontWeight: '500', color: 'var(--primary)' }}>WH/INT/012</td>
-              <td style={{ padding: '12px' }}>Internal</td>
-              <td style={{ padding: '12px' }}>Main Store → Production Rack</td>
-              <td style={{ padding: '12px' }}><span style={{ backgroundColor: 'rgba(0, 255, 204, 0.2)', color: '#00ffcc', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #00ffcc' }}>Done</span></td>
-              <td style={{ padding: '12px' }}>Yesterday, 04:15 PM</td>
+              <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/OUT/045</td>
+              <td>Delivery</td>
+              <td>Main Store / Customer Y</td>
+              <td><span className="badge badge-warning">Ready</span></td>
+              <td>Today, 08:30 AM</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: '500', color: 'var(--text-main)' }}>WH/INT/012</td>
+              <td>Internal</td>
+              <td>Main Store / Production Rack</td>
+              <td><span className="badge badge-success">Done</span></td>
+              <td>Yesterday, 04:15 PM</td>
             </tr>
           </tbody>
         </table>

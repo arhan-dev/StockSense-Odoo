@@ -13,11 +13,11 @@ export default function ProductsView() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Product Management</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Manage products, categories, and track stock levels across locations.</p>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.25rem' }}>Product Directory</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Manage products and track stock levels across locations.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(!showCreate)}>
-          <Plus size={18} /> {showCreate ? 'Cancel' : 'Create Product'}
+        <button className="btn-primary" onClick={() => setShowCreate(!showCreate)}>
+          <Plus size={16} /> {showCreate ? 'Cancel' : 'Create Product'}
         </button>
       </div>
 
@@ -72,9 +72,9 @@ export default function ProductsView() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <button type="submit" className="btn btn-primary" onClick={() => setShowCreate(false)}>Save Product</button>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+              <button type="submit" className="btn-primary" onClick={() => setShowCreate(false)}>Save Product</button>
+              <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
             </div>
           </form>
         </div>
@@ -104,7 +104,7 @@ export default function ProductsView() {
               <tr key={product.id}>
                 <td style={{ fontWeight: '500', color: 'var(--primary)' }}>{product.sku}</td>
                 <td>{product.name}</td>
-                <td><span style={{ backgroundColor: '#222222', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid #444' }}>{product.category}</span></td>
+                <td><span className="badge badge-gray">{product.category}</span></td>
                 <td>{product.stock} {product.uom}</td>
                 <td>{product.location}</td>
                 <td>
