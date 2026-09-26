@@ -159,16 +159,12 @@ group by product_id;
 
 -- ============================================================
 -- SHARED ADVISORY LOCK HELPER
--- Single canonical definition of "how we lock a (product, location)
--- pair before reading/writing stock_moves for it". Every validation
--- function below calls THIS function rather than building its own
--- lock key — that is what guarantees delivery vs transfer vs
--- adjustment all serialize against each other for the same pair,
--- instead of relying on three separate expressions staying identical
--- by convention.
 -- ============================================================
 
-create or replace function public.lock_stock_row(p_product_id uuid, p_location_id uuid)
+create or replace function public.lock_stock_row(
+  p_product_id uuid,
+  p_location_id uuid
+)
 returns void
 language plpgsql
 set search_path = ''
@@ -183,7 +179,6 @@ $$;
 
 -- ============================================================
 -- PROFILE AUTO-CREATION
--- Hardened: search_path = '' + fully schema-qualified references.
 -- ============================================================
 
 create or replace function public.handle_new_user()
@@ -194,21 +189,29 @@ set search_path = ''
 as $$
 begin
   insert into public.profiles (id, full_name)
-  values (new.id, new.raw_user_meta_data->>'full_name');
+  values (
+    new.id,
+    new.raw_user_meta_data->>'full_name'
+  );
+
   return new;
 end;
 $$;
 
 create trigger on_auth_user_created
 after insert on auth.users
-for each row execute function public.handle_new_user();
+for each row
+execute function public.handle_new_user();
 
 -- ============================================================
--- STATUS TRANSITIONS (non-validating stages only)
--- Hardened: search_path = '' + schema-qualified dynamic SQL.
+-- STATUS TRANSITIONS
 -- ============================================================
 
-create or replace function public.advance_status(p_table text, p_id uuid, p_target public.doc_status)
+create or replace function public.advance_status(
+  p_table text,
+  p_id uuid,
+  p_target public.doc_status
+)
 returns void
 language plpgsql
 security definer
@@ -218,45 +221,64 @@ declare
   v_current public.doc_status;
   v_allowed boolean := false;
 begin
-  if p_table not in ('receipts','deliveries','transfers','adjustments') then
+  if p_table not in (
+    'receipts',
+    'deliveries',
+    'transfers',
+    'adjustments'
+  ) then
     raise exception 'Invalid table %', p_table;
   end if;
 
-  execute format('select status from public.%I where id = $1 for update', p_table)
-    into v_current using p_id;
+  execute format(
+    'select status from public.%I where id = $1 for update',
+    p_table
+  )
+  into v_current
+  using p_id;
 
   if v_current is null then
     raise exception 'Document not found';
   end if;
 
   if v_current in ('done','cancelled') then
-    raise exception 'Document is already % and cannot be changed', v_current;
+    raise exception
+      'Document is already % and cannot be changed',
+      v_current;
   end if;
 
   if p_target = 'cancelled' then
     v_allowed := true;
-  elsif v_current = 'draft' and p_target = 'waiting' then
+  elsif v_current = 'draft'
+    and p_target = 'waiting' then
     v_allowed := true;
-  elsif v_current = 'waiting' and p_target = 'ready' then
+  elsif v_current = 'waiting'
+    and p_target = 'ready' then
     v_allowed := true;
   end if;
 
   if not v_allowed then
-    raise exception 'Cannot move from % to %', v_current, p_target;
+    raise exception
+      'Cannot move from % to %',
+      v_current,
+      p_target;
   end if;
 
-  execute format('update public.%I set status = $1 where id = $2', p_table)
-    using p_target, p_id;
+  execute format(
+    'update public.%I set status = $1 where id = $2',
+    p_table
+  )
+  using p_target, p_id;
 end;
 $$;
 
 -- ============================================================
--- VALIDATION FUNCTIONS (the only writers of stock_moves)
--- Hardened: search_path = '', schema-qualified, advisory-locked
--- via the shared lock_stock_row() helper above.
+-- RECEIPT VALIDATION
 -- ============================================================
 
-create or replace function public.validate_receipt(p_receipt_id uuid)
+create or replace function public.validate_receipt(
+  p_receipt_id uuid
+)
 returns void
 language plpgsql
 security definer
@@ -268,27 +290,48 @@ declare
   v_reference text;
   v_line record;
 begin
-  select status, destination_location_id, reference
-    into v_status, v_destination, v_reference
-    from public.receipts where id = p_receipt_id for update;
+  select
+    status,
+    destination_location_id,
+    reference
+  into
+    v_status,
+    v_destination,
+    v_reference
+  from public.receipts
+  where id = p_receipt_id
+  for update;
 
   if v_status is null then
     raise exception 'Receipt not found';
   end if;
+
   if v_status <> 'ready' then
-    raise exception 'Receipt must be in ready status to validate (current: %)', v_status;
+    raise exception
+      'Receipt must be in ready status to validate (current: %)',
+      v_status;
   end if;
-  if not exists (select 1 from public.receipt_lines where receipt_id = p_receipt_id) then
+
+  if not exists (
+    select 1
+    from public.receipt_lines
+    where receipt_id = p_receipt_id
+  ) then
     raise exception 'Receipt has no line items';
   end if;
 
   for v_line in
-    select distinct rl.product_id, v_destination as location_id
+    select distinct
+      rl.product_id,
+      v_destination as location_id
     from public.receipt_lines rl
     where rl.receipt_id = p_receipt_id
     order by rl.product_id
   loop
-    perform public.lock_stock_row(v_line.product_id, v_line.location_id);
+    perform public.lock_stock_row(
+      v_line.product_id,
+      v_line.location_id
+    );
   end loop;
 
   insert into public.stock_moves (
@@ -310,13 +353,20 @@ begin
   where rl.receipt_id = p_receipt_id;
 
   update public.receipts
-  set status = 'done',
-      validated_at = now()
+  set
+    status = 'done',
+    validated_at = now()
   where id = p_receipt_id;
 end;
 $$;
 
-create or replace function public.validate_delivery(p_delivery_id uuid)
+-- ============================================================
+-- DELIVERY VALIDATION
+-- ============================================================
+
+create or replace function public.validate_delivery(
+  p_delivery_id uuid
+)
 returns void
 language plpgsql
 security definer
@@ -330,18 +380,26 @@ declare
   v_line record;
   v_available numeric;
 begin
-  select status, source_location_id, reference
-    into v_status, v_source, v_reference
-    from public.deliveries
-    where id = p_delivery_id
-    for update;
+  select
+    status,
+    source_location_id,
+    reference
+  into
+    v_status,
+    v_source,
+    v_reference
+  from public.deliveries
+  where id = p_delivery_id
+  for update;
 
   if v_status is null then
     raise exception 'Delivery not found';
   end if;
 
   if v_status <> 'ready' then
-    raise exception 'Delivery must be in ready status to validate (current: %)', v_status;
+    raise exception
+      'Delivery must be in ready status to validate (current: %)',
+      v_status;
   end if;
 
   if not exists (
@@ -353,12 +411,17 @@ begin
   end if;
 
   for v_lock in
-    select distinct dl.product_id, v_source as location_id
+    select distinct
+      dl.product_id,
+      v_source as location_id
     from public.delivery_lines dl
     where dl.delivery_id = p_delivery_id
     order by dl.product_id
   loop
-    perform public.lock_stock_row(v_lock.product_id, v_lock.location_id);
+    perform public.lock_stock_row(
+      v_lock.product_id,
+      v_lock.location_id
+    );
   end loop;
 
   for v_line in
@@ -367,11 +430,12 @@ begin
       dl.quantity,
       p.name as product_name
     from public.delivery_lines dl
-    join public.products p on p.id = dl.product_id
+    join public.products p
+      on p.id = dl.product_id
     where dl.delivery_id = p_delivery_id
   loop
     select coalesce(sum(quantity_delta), 0)
-      into v_available
+    into v_available
     from public.stock_moves
     where product_id = v_line.product_id
       and location_id = v_source;
@@ -404,13 +468,20 @@ begin
   where dl.delivery_id = p_delivery_id;
 
   update public.deliveries
-  set status = 'done',
-      validated_at = now()
+  set
+    status = 'done',
+    validated_at = now()
   where id = p_delivery_id;
 end;
 $$;
 
-create or replace function public.validate_transfer(p_transfer_id uuid)
+-- ============================================================
+-- TRANSFER VALIDATION
+-- ============================================================
+
+create or replace function public.validate_transfer(
+  p_transfer_id uuid
+)
 returns void
 language plpgsql
 security definer
@@ -444,7 +515,9 @@ begin
   end if;
 
   if v_status <> 'ready' then
-    raise exception 'Transfer must be in ready status to validate (current: %)', v_status;
+    raise exception
+      'Transfer must be in ready status to validate (current: %)',
+      v_status;
   end if;
 
   if not exists (
@@ -456,7 +529,9 @@ begin
   end if;
 
   for v_lock in
-    select distinct x.product_id, x.location_id
+    select distinct
+      x.product_id,
+      x.location_id
     from (
       select
         tl.product_id,
@@ -472,7 +547,9 @@ begin
       from public.transfer_lines tl
       where tl.transfer_id = p_transfer_id
     ) x
-    order by x.product_id, x.location_id
+    order by
+      x.product_id,
+      x.location_id
   loop
     perform public.lock_stock_row(
       v_lock.product_id,
@@ -486,11 +563,12 @@ begin
       tl.quantity,
       p.name as product_name
     from public.transfer_lines tl
-    join public.products p on p.id = tl.product_id
+    join public.products p
+      on p.id = tl.product_id
     where tl.transfer_id = p_transfer_id
   loop
     select coalesce(sum(quantity_delta), 0)
-      into v_available
+    into v_available
     from public.stock_moves
     where product_id = v_line.product_id
       and location_id = v_source;
@@ -541,13 +619,20 @@ begin
   where tl.transfer_id = p_transfer_id;
 
   update public.transfers
-  set status = 'done',
-      validated_at = now()
+  set
+    status = 'done',
+    validated_at = now()
   where id = p_transfer_id;
 end;
 $$;
 
-create or replace function public.validate_adjustment(p_adjustment_id uuid)
+-- ============================================================
+-- ADJUSTMENT VALIDATION
+-- ============================================================
+
+create or replace function public.validate_adjustment(
+  p_adjustment_id uuid
+)
 returns void
 language plpgsql
 security definer
@@ -562,18 +647,26 @@ declare
   v_current numeric;
   v_delta numeric;
 begin
-  select status, location_id, reference
-    into v_status, v_location, v_reference
-    from public.adjustments
-    where id = p_adjustment_id
-    for update;
+  select
+    status,
+    location_id,
+    reference
+  into
+    v_status,
+    v_location,
+    v_reference
+  from public.adjustments
+  where id = p_adjustment_id
+  for update;
 
   if v_status is null then
     raise exception 'Adjustment not found';
   end if;
 
   if v_status <> 'ready' then
-    raise exception 'Adjustment must be in ready status to validate (current: %)', v_status;
+    raise exception
+      'Adjustment must be in ready status to validate (current: %)',
+      v_status;
   end if;
 
   if not exists (
@@ -585,7 +678,9 @@ begin
   end if;
 
   for v_lock in
-    select distinct al.product_id, v_location as location_id
+    select distinct
+      al.product_id,
+      v_location as location_id
     from public.adjustment_lines al
     where al.adjustment_id = p_adjustment_id
     order by al.product_id
@@ -605,7 +700,7 @@ begin
     where al.adjustment_id = p_adjustment_id
   loop
     select coalesce(sum(quantity_delta), 0)
-      into v_current
+    into v_current
     from public.stock_moves
     where product_id = v_line.product_id
       and location_id = v_location;
@@ -635,15 +730,15 @@ begin
   end loop;
 
   update public.adjustments
-  set status = 'done',
-      validated_at = now()
+  set
+    status = 'done',
+    validated_at = now()
   where id = p_adjustment_id;
 end;
 $$;
 
 -- ============================================================
 -- PRODUCT CREATION WITH OPTIONAL INITIAL STOCK
--- Hardened: search_path = '', schema-qualified, non-negative check.
 -- ============================================================
 
 create or replace function public.create_product_with_initial_stock(
@@ -670,12 +765,14 @@ begin
 
   if p_reorder_threshold < 0
      or p_reorder_quantity < 0 then
-    raise exception 'Reorder threshold and reorder quantity cannot be negative';
+    raise exception
+      'Reorder threshold and reorder quantity cannot be negative';
   end if;
 
   if p_initial_stock > 0
      and p_initial_location_id is null then
-    raise exception 'A location is required when initial stock is greater than zero';
+    raise exception
+      'A location is required when initial stock is greater than zero';
   end if;
 
   insert into public.products (
@@ -723,220 +820,417 @@ $$;
 -- ROW LEVEL SECURITY
 -- ============================================================
 
-alter table profiles enable row level security;
-alter table warehouses enable row level security;
-alter table locations enable row level security;
-alter table categories enable row level security;
-alter table products enable row level security;
-alter table receipts enable row level security;
-alter table receipt_lines enable row level security;
-alter table deliveries enable row level security;
-alter table delivery_lines enable row level security;
-alter table transfers enable row level security;
-alter table transfer_lines enable row level security;
-alter table adjustments enable row level security;
-alter table adjustment_lines enable row level security;
-alter table stock_moves enable row level security;
+alter table public.profiles enable row level security;
+alter table public.warehouses enable row level security;
+alter table public.locations enable row level security;
+alter table public.categories enable row level security;
+alter table public.products enable row level security;
+alter table public.receipts enable row level security;
+alter table public.receipt_lines enable row level security;
+alter table public.deliveries enable row level security;
+alter table public.delivery_lines enable row level security;
+alter table public.transfers enable row level security;
+alter table public.transfer_lines enable row level security;
+alter table public.adjustments enable row level security;
+alter table public.adjustment_lines enable row level security;
+alter table public.stock_moves enable row level security;
+
+-- ============================================================
+-- PROFILES
+-- ============================================================
 
 create policy "profiles_select_all"
-on profiles
+on public.profiles
 for select
 to authenticated
 using (true);
 
 create policy "profiles_update_own"
-on profiles
+on public.profiles
 for update
 to authenticated
-using (id = auth.uid());
+using (id = auth.uid())
+with check (id = auth.uid());
+
+-- ============================================================
+-- MASTER DATA
+-- ============================================================
 
 create policy "warehouses_all"
-on warehouses
+on public.warehouses
 for all
 to authenticated
 using (true)
 with check (true);
 
 create policy "locations_all"
-on locations
+on public.locations
 for all
 to authenticated
 using (true)
 with check (true);
 
 create policy "categories_all"
-on categories
+on public.categories
 for all
 to authenticated
 using (true)
 with check (true);
 
 create policy "products_all"
-on products
+on public.products
 for all
 to authenticated
 using (true)
 with check (true);
 
+-- ============================================================
+-- RECEIPTS
+-- ============================================================
+
 create policy "receipts_select"
-on receipts
+on public.receipts
 for select
 to authenticated
 using (true);
 
 create policy "receipts_insert"
-on receipts
+on public.receipts
 for insert
 to authenticated
-with check (true);
+with check (
+  status = 'draft'
+  and created_by = auth.uid()
+);
 
 create policy "receipts_update"
-on receipts
+on public.receipts
 for update
 to authenticated
-using (true)
-with check (true);
+using (status = 'draft')
+with check (status = 'draft');
+
+-- No DELETE policy/grant for receipts.
+-- Documents are never physically deleted after creation.
+
+-- ============================================================
+-- RECEIPT LINES
+-- ============================================================
 
 create policy "receipt_lines_select"
-on receipt_lines
+on public.receipt_lines
 for select
 to authenticated
 using (true);
 
 create policy "receipt_lines_insert"
-on receipt_lines
+on public.receipt_lines
 for insert
 to authenticated
-with check (true);
+with check (
+  exists (
+    select 1
+    from public.receipts r
+    where r.id = receipt_lines.receipt_id
+      and r.status = 'draft'
+  )
+);
 
 create policy "receipt_lines_update"
-on receipt_lines
+on public.receipt_lines
 for update
 to authenticated
-using (true)
-with check (true);
+using (
+  exists (
+    select 1
+    from public.receipts r
+    where r.id = receipt_lines.receipt_id
+      and r.status = 'draft'
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.receipts r
+    where r.id = receipt_lines.receipt_id
+      and r.status = 'draft'
+  )
+);
+
+create policy "receipt_lines_delete"
+on public.receipt_lines
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.receipts r
+    where r.id = receipt_lines.receipt_id
+      and r.status = 'draft'
+  )
+);
+
+-- ============================================================
+-- DELIVERIES
+-- ============================================================
 
 create policy "deliveries_select"
-on deliveries
+on public.deliveries
 for select
 to authenticated
 using (true);
 
 create policy "deliveries_insert"
-on deliveries
+on public.deliveries
 for insert
 to authenticated
-with check (true);
+with check (
+  status = 'draft'
+  and created_by = auth.uid()
+);
 
 create policy "deliveries_update"
-on deliveries
+on public.deliveries
 for update
 to authenticated
-using (true)
-with check (true);
+using (status = 'draft')
+with check (status = 'draft');
+
+-- No DELETE policy/grant for deliveries.
+
+-- ============================================================
+-- DELIVERY LINES
+-- ============================================================
 
 create policy "delivery_lines_select"
-on delivery_lines
+on public.delivery_lines
 for select
 to authenticated
 using (true);
 
 create policy "delivery_lines_insert"
-on delivery_lines
+on public.delivery_lines
 for insert
 to authenticated
-with check (true);
+with check (
+  exists (
+    select 1
+    from public.deliveries d
+    where d.id = delivery_lines.delivery_id
+      and d.status = 'draft'
+  )
+);
 
 create policy "delivery_lines_update"
-on delivery_lines
+on public.delivery_lines
 for update
 to authenticated
-using (true)
-with check (true);
+using (
+  exists (
+    select 1
+    from public.deliveries d
+    where d.id = delivery_lines.delivery_id
+      and d.status = 'draft'
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.deliveries d
+    where d.id = delivery_lines.delivery_id
+      and d.status = 'draft'
+  )
+);
+
+create policy "delivery_lines_delete"
+on public.delivery_lines
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.deliveries d
+    where d.id = delivery_lines.delivery_id
+      and d.status = 'draft'
+  )
+);
+
+-- ============================================================
+-- INTERNAL TRANSFERS
+-- ============================================================
 
 create policy "transfers_select"
-on transfers
+on public.transfers
 for select
 to authenticated
 using (true);
 
 create policy "transfers_insert"
-on transfers
+on public.transfers
 for insert
 to authenticated
-with check (true);
+with check (
+  status = 'draft'
+  and created_by = auth.uid()
+);
 
 create policy "transfers_update"
-on transfers
+on public.transfers
 for update
 to authenticated
-using (true)
-with check (true);
+using (status = 'draft')
+with check (status = 'draft');
+
+-- No DELETE policy/grant for transfers.
+
+-- ============================================================
+-- TRANSFER LINES
+-- ============================================================
 
 create policy "transfer_lines_select"
-on transfer_lines
+on public.transfer_lines
 for select
 to authenticated
 using (true);
 
 create policy "transfer_lines_insert"
-on transfer_lines
+on public.transfer_lines
 for insert
 to authenticated
-with check (true);
+with check (
+  exists (
+    select 1
+    from public.transfers t
+    where t.id = transfer_lines.transfer_id
+      and t.status = 'draft'
+  )
+);
 
 create policy "transfer_lines_update"
-on transfer_lines
+on public.transfer_lines
 for update
 to authenticated
-using (true)
-with check (true);
+using (
+  exists (
+    select 1
+    from public.transfers t
+    where t.id = transfer_lines.transfer_id
+      and t.status = 'draft'
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.transfers t
+    where t.id = transfer_lines.transfer_id
+      and t.status = 'draft'
+  )
+);
+
+create policy "transfer_lines_delete"
+on public.transfer_lines
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.transfers t
+    where t.id = transfer_lines.transfer_id
+      and t.status = 'draft'
+  )
+);
+
+-- ============================================================
+-- INVENTORY ADJUSTMENTS
+-- ============================================================
 
 create policy "adjustments_select"
-on adjustments
+on public.adjustments
 for select
 to authenticated
 using (true);
 
 create policy "adjustments_insert"
-on adjustments
+on public.adjustments
 for insert
 to authenticated
-with check (true);
+with check (
+  status = 'draft'
+  and created_by = auth.uid()
+);
 
 create policy "adjustments_update"
-on adjustments
+on public.adjustments
 for update
 to authenticated
-using (true)
-with check (true);
+using (status = 'draft')
+with check (status = 'draft');
+
+-- No DELETE policy/grant for adjustments.
+
+-- ============================================================
+-- ADJUSTMENT LINES
+-- ============================================================
 
 create policy "adjustment_lines_select"
-on adjustment_lines
+on public.adjustment_lines
 for select
 to authenticated
 using (true);
 
 create policy "adjustment_lines_insert"
-on adjustment_lines
+on public.adjustment_lines
 for insert
 to authenticated
-with check (true);
+with check (
+  exists (
+    select 1
+    from public.adjustments a
+    where a.id = adjustment_lines.adjustment_id
+      and a.status = 'draft'
+  )
+);
 
 create policy "adjustment_lines_update"
-on adjustment_lines
+on public.adjustment_lines
 for update
 to authenticated
-using (true)
-with check (true);
+using (
+  exists (
+    select 1
+    from public.adjustments a
+    where a.id = adjustment_lines.adjustment_id
+      and a.status = 'draft'
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.adjustments a
+    where a.id = adjustment_lines.adjustment_id
+      and a.status = 'draft'
+  )
+);
 
--- stock_moves: read-only for clients; every write goes through a
--- SECURITY DEFINER function above, which runs as the function owner
--- and therefore bypasses RLS. There is no INSERT/UPDATE/DELETE policy
--- for this table at all — that absence is the enforcement.
+create policy "adjustment_lines_delete"
+on public.adjustment_lines
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.adjustments a
+    where a.id = adjustment_lines.adjustment_id
+      and a.status = 'draft'
+  )
+);
+
+-- ============================================================
+-- STOCK MOVES
+-- ============================================================
 
 create policy "stock_moves_select"
-on stock_moves
+on public.stock_moves
 for select
 to authenticated
 using (true);
@@ -945,40 +1239,127 @@ using (true);
 -- GRANTS
 -- ============================================================
 
-grant usage on schema public to authenticated;
+revoke all
+on schema public
+from authenticated;
 
--- profiles: full_name only. role and id are NOT grantable for update,
--- so no RLS policy, no client request, and no future admin UI bug
--- can let a user grant themselves a privileged role from the client.
-
-grant select on profiles to authenticated;
-grant update (full_name) on profiles to authenticated;
-
-grant select, insert, update, delete
-on warehouses, locations, categories, products
+grant usage
+on schema public
 to authenticated;
 
-grant select, insert, update
-on receipts,
-   receipt_lines,
-   deliveries,
-   delivery_lines,
-   transfers,
-   transfer_lines,
-   adjustments,
-   adjustment_lines
-to authenticated;
-
+-- Profiles: users can read profiles and update their own
+-- full_name. Role is deliberately not client-updatable.
 grant select
-on stock_moves, stock_by_location, stock_by_product
+on public.profiles
 to authenticated;
+
+grant update (full_name)
+on public.profiles
+to authenticated;
+
+-- Master data.
+grant select, insert, update, delete
+on public.warehouses,
+   public.locations,
+   public.categories,
+   public.products
+to authenticated;
+
+-- Parent inventory documents.
+-- No DELETE permission is granted.
+-- Status, ownership metadata, timestamps, and validation
+-- timestamps are not client-updatable.
+grant select, insert
+on public.receipts,
+   public.deliveries,
+   public.transfers,
+   public.adjustments
+to authenticated;
+
+grant update (
+  reference,
+  supplier_name,
+  destination_location_id
+)
+on public.receipts
+to authenticated;
+
+grant update (
+  reference,
+  customer_name,
+  source_location_id
+)
+on public.deliveries
+to authenticated;
+
+grant update (
+  reference,
+  source_location_id,
+  destination_location_id
+)
+on public.transfers
+to authenticated;
+
+grant update (
+  reference,
+  location_id
+)
+on public.adjustments
+to authenticated;
+
+-- Document line reads/inserts.
+grant select, insert
+on public.receipt_lines,
+   public.delivery_lines,
+   public.transfer_lines,
+   public.adjustment_lines
+to authenticated;
+
+-- Only the fields used by the backend line-update services
+-- are client-updatable.
+grant update (quantity)
+on public.receipt_lines,
+   public.delivery_lines,
+   public.transfer_lines
+to authenticated;
+
+grant update (
+  counted_quantity,
+  reason
+)
+on public.adjustment_lines
+to authenticated;
+
+-- Controlled line deletion is permitted only by the
+-- draft-only RLS policies above.
+grant delete
+on public.receipt_lines,
+   public.delivery_lines,
+   public.transfer_lines,
+   public.adjustment_lines
+to authenticated;
+
+-- Stock views and immutable ledger are read-only to clients.
+grant select
+on public.stock_moves,
+   public.stock_by_location,
+   public.stock_by_product
+to authenticated;
+
+-- ============================================================
+-- RPC EXECUTION PERMISSIONS
+-- ============================================================
 
 grant execute
 on function public.lock_stock_row(uuid, uuid)
 to authenticated;
 
 grant execute
-on function public.advance_status(text, uuid, public.doc_status)
+on function public.advance_status(
+  text,
+  uuid,
+  public.doc_status
+)
 to authenticated;
 
 grant execute
@@ -1009,3 +1390,7 @@ on function public.create_product_with_initial_stock(
   uuid
 )
 to authenticated;
+
+-- ============================================================
+-- END OF SCHEMA
+-- ============================================================
