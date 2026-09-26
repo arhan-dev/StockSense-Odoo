@@ -107,36 +107,3 @@ export async function listProfiles() {
 
   return data ?? []
 }
-
-export async function updateProfileRole(userId, role) {
-  if (!userId) {
-    throw new Error('User ID is required.')
-  }
-
-  const allowedRoles = [
-    'inventory_manager',
-    'warehouse_staff',
-  ]
-
-  if (!allowedRoles.includes(role)) {
-    throw new Error('Invalid profile role.')
-  }
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({
-      role,
-    })
-    .eq('id', userId)
-    .select(`
-      id,
-      full_name,
-      role,
-      created_at
-    `)
-    .single()
-
-  throwIfError(error)
-
-  return data
-}
